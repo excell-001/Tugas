@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi Algoritma Greedy: Penukaran Uang</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF7; /* Warm neutral background */
+            color: #1F2937;
+        }
+        
+        /* Custom Scrollbar for logs */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #F1F1F1; 
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #D1D5DB; 
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #9CA3AF; 
+        }
+
+        /* Chart Container Strict Styling */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%; 
+            height: 300px;
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        /* Tab Active/Inactive States */
+        .tab-active {
+            border-bottom: 3px solid #4F46E5; /* Indigo-600 */
+            color: #4F46E5;
+            font-weight: 600;
+        }
+        .tab-inactive {
+            border-bottom: 3px solid transparent;
+            color: #6B7280; /* Gray-500 */
+        }
+        .tab-inactive:hover {
+            color: #374151;
+            border-bottom: 3px solid #E5E7EB;
+        }
+        
+        .btn-primary {
+            background-color: #4F46E5;
+            color: white;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #4338CA;
+        }
+        .btn-secondary {
+            background-color: #F3F4F6;
+            color: #1F2937;
+            border: 1px solid #E5E7EB;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #E5E7EB;
+        }
+    </style>
+
+    <!-- Placeholder Comments Required by Prompt -->
+    <!-- Chosen Palette: Warm Neutrals (Cream/Off-White #FDFBF7) with Indigo Accents for UI and Slate for Text. Creates a calm, academic but modern feel. -->
+    <!-- Application Structure Plan: 
+         Top Navigation: Toggles between the two main case studies (MST Network & Money Change).
+         Section 1 (MST): Split view. Left side is a custom HTML5 Canvas interactive diagram to show the graph topology physically. Right side is the 'Control Center' with step-by-step buttons and a text log to simulate the 'tracing' requested in the case study.
+         Section 2 (Money): Input-driven interface. Top section allows user to input amount. Bottom section splits into a Chart.js visualization (frequency of bills) and a detailed calculation receipt (Trace Log) to match the Python output logic. 
+         Why this structure: It separates the spatial problem (graph) from the quantitative problem (money), allowing dedicated visualization techniques for each while keeping them in one cohesive app.
+    -->
+    <!-- Visualization & Content Choices: 
+         1. MST Graph: HTML5 Canvas. Reason: Allows drawing specific node coordinates (A-E) and lines with weights. Chart.js network graphs are complex to configure for specific topology. Canvas is strictly HTML/JS.
+         2. Money Distribution: Chart.js Bar Chart. Reason: Perfect for comparing the count of each denomination used.
+         3. Logs/Trace: Styled HTML lists. Reason: Directly answers the prompt's requirement to "explain/trace" the logic textually.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">Rp</div>
+                    <h1 class="text-xl font-bold text-gray-900 tracking-tight">Greedy Change Maker <span class="font-normal text-gray-500">| Visualizer</span></h1>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- ==================== MONEY SECTION ==================== -->
+        <section id="section-money" class="space-y-6">
+            
+            <!-- Intro Box -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Studi Kasus: Penukaran Uang (Greedy)</h2>
+                <p class="text-gray-600 leading-relaxed">
+                    Simulasi kasir cerdas. Masukkan jumlah uang kembalian, dan sistem akan menghitung kombinasi pecahan minimum menggunakan strategi Greedy (mengambil pecahan terbesar yang mungkin).
+                </p>
+            </div>
+
+            <!-- Input Area -->
+            <div class="bg-indigo-50 rounded-xl border border-indigo-100 p-8 flex flex-col md:flex-row items-center gap-6 justify-center">
+                <div class="w-full max-w-md">
+                    <label class="block text-sm font-medium text-indigo-900 mb-2">Masukkan Target Kembalian (Rp)</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-lg">Rp</span>
+                        </div>
+                        <input type="number" id="moneyInput" value="43500" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 py-3 sm:text-lg border-gray-300 rounded-lg" placeholder="Contoh: 43500">
+                    </div>
+                </div>
+                <button onclick="calculateMoney()" class="w-full md:w-auto btn-primary px-8 py-3 rounded-lg font-bold text-lg shadow-lg transform hover:-translate-y-0.5 transition-transform">
+                    Hitung Sekarang
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Chart Visualization -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="font-bold text-gray-800 mb-4">Distribusi Pecahan</h3>
+                    <div class="chart-container">
+                        <canvas id="moneyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Detailed Receipt -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-0 overflow-hidden flex flex-col">
+                    <div class="bg-gray-50 p-4 border-b border-gray-200">
+                        <h3 class="font-bold text-gray-800">Rincian Penukaran (Struk)</h3>
+                        <p class="text-xs text-gray-500">Logika langkah demi langkah</p>
+                    </div>
+                    <div id="money-log-container" class="p-6 overflow-y-auto custom-scroll flex-1 h-[300px] space-y-3 font-mono text-sm">
+                        <!-- Dynamic Content -->
+                        <div class="text-center text-gray-400 mt-10">Klik "Hitung Sekarang" untuk melihat hasil.</div>
+                    </div>
+                    <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
+                        <span>Total Item:</span>
+                        <span id="total-items-display" class="text-xl font-bold text-green-400">0</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Money Data & State ---
+        let moneyChartInstance = null;
+        const denominations = [50000, 20000, 10000, 5000, 1000, 500];
+
+        // ================= INITIALIZATION =================
+        window.onload = function() {
+            initMoneyChart();
+        };
+
+        // ================= MONEY LOGIC =================
+        
+        function initMoneyChart() {
+            const ctx = document.getElementById('moneyChart').getContext('2d');
+            moneyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: denominations.map(d => `Rp ${d.toLocaleString()}`),
+                    datasets: [{
+                        label: 'Jumlah Lembar/Koin',
+                        data: [0,0,0,0,0,0],
+                        backgroundColor: [
+                            '#4f46e5', '#4f46e5', '#6366f1', '#6366f1', '#818cf8', '#818cf8'
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function calculateMoney() {
+            const inputVal = parseInt(document.getElementById('moneyInput').value);
+            if (isNaN(inputVal) || inputVal < 0) {
+                alert("Mohon masukkan nominal yang valid.");
+                return;
+            }
+
+            let sisa = inputVal;
+            const resultCounts = [];
+            const logs = [];
+            let totalItems = 0;
+
+            // Greedy Algorithm Logic
+            denominations.forEach(denom => {
+                const count = Math.floor(sisa / denom);
+                resultCounts.push(count);
+                
+                if (count > 0) {
+                    const valueTaken = count * denom;
+                    logs.push({
+                        denom: denom,
+                        count: count,
+                        subtotal: valueTaken,
+                        oldSisa: sisa,
+                        newSisa: sisa - valueTaken
+                    });
+                    sisa = sisa % denom;
+                    totalItems += count;
+                }
+            });
+
+            // Update UI
+            updateMoneyUI(resultCounts, logs, totalItems, inputVal);
+        }
+
+        function updateMoneyUI(data, logs, total, initialAmount) {
+            // 1. Update Chart
+            moneyChartInstance.data.datasets[0].data = data;
+            moneyChartInstance.update();
+
+            // 2. Update Text Log
+            const logContainer = document.getElementById('money-log-container');
+            logContainer.innerHTML = ''; // Clear
+
+            // Header Log
+            const header = document.createElement('div');
+            header.className = "mb-4 font-bold text-indigo-900";
+            header.innerText = `Target: Rp ${initialAmount.toLocaleString()}`;
+            logContainer.appendChild(header);
+
+            logs.forEach(log => {
+                const row = document.createElement('div');
+                row.className = "flex flex-col border-b border-gray-100 pb-2 mb-2";
+                row.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-800">${log.count}x Rp ${log.denom.toLocaleString()}</span>
+                        <span class="text-gray-500 text-xs">- Rp ${log.subtotal.toLocaleString()}</span>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">
+                        Sisa: Rp ${log.oldSisa.toLocaleString()} → <span class="text-indigo-600 font-bold">Rp ${log.newSisa.toLocaleString()}</span>
+                    </div>
+                `;
+                logContainer.appendChild(row);
+            });
+
+            if (logs.length === 0) {
+                logContainer.innerHTML += `<div class="text-gray-500 italic">Tidak ada pecahan yang diperlukan.</div>`;
+            } else if (initialAmount % 500 !== 0) {
+                 const remainder = initialAmount % 500;
+                 if (remainder > 0) {
+                     const warn = document.createElement('div');
+                     warn.className = "mt-2 text-red-500 text-xs italic";
+                     warn.innerText = `*Sisa Rp ${remainder} tidak dapat ditukar (pecahan terkecil Rp 500).`;
+                     logContainer.appendChild(warn);
+                 }
+            }
+
+            // 3. Update Total
+            document.getElementById('total-items-display').innerText = total;
+        }
+    </script>
+</body>
+</html>
